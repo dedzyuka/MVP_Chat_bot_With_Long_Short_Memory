@@ -1,9 +1,10 @@
 import uuid
 from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
-from .config import llm, MAX_MESSAGES, MAX_TOKENS, DB_URI
-from .memory import summarize_memory, count_tokens
-from .database import AsyncPostgresStore
+from langmem import create_memory_store_manager
+from.config import llm, MAX_MESSAGES, MAX_TOKENS, DB_URI
+from.memory import summarize_memory, count_tokens
+from.database import AsyncPostgresStore
 
 class State(TypedDict):
     memory: List[dict]
@@ -15,35 +16,70 @@ async def process_message(state: State):
         state["memory"] = []
     
     user_msg = state["message"]
-    user_id = state.get("user_id", "bogdan_001")
+    user_id = state["user_id"] 
     
     async with AsyncPostgresStore.from_conn_string(DB_URI) as store:
-        namespace = ("memories", user_id)
+        memory_manager = create_memory_store_manager(
+            llm,  
+            store=store,
+            namespace=("telegram_bot", user_id),
+            query_limit=3,
+            enable_inserts=True,
+            enable_deletes=False
+        )
         
-        memories = await store.asearch(namespace, query=user_msg, limit=3)
-        memory_info = "\n".join([d.value["data"] for d in memories]) if memories else "Нет информации в долговременной памяти"
+
+        
+        relevant_memories = await memory_manager.asearch(
+            query=user_msg,
+        )
+        
+        memory_context = ""
+        if relevant_memories:
+            memory_context = "Контекст из предыдущих разговоров:\n" + \
+                           "\n".join([f"- {mem.content}" for mem in relevant_memories])
+        else:
+            memory_context = "Ранее вы не обсуждали эту тему."
         
         state["memory"].append({"role": "user", "content": user_msg})
         
         if len(state["memory"]) > MAX_MESSAGES:
-            state["memory"] = state["memory"][-MAX_MESSAGES:]
+            state["memory"] = state["memory"]
         
         while count_tokens(state["memory"]) > MAX_TOKENS:
             state["memory"] = await summarize_memory(state["memory"], keep=3)
         
-        context = f"""Информация из долговременной памяти пользователя:
-{memory_info}
 
-Текущий разговор:
-""" + "\n".join(f"{m['role']}: {m['content']}" for m in state["memory"])
+        conversation_history = "\n".join(
+            f"{m['role']}: {m['content']}" for m in state["memory"][:-1]  
+        )
+        
+        full_context = f"""
+{memory_context}
+
+История текущего разговора:
+{conversation_history}
+
+Текущее сообщение: {user_msg}
+"""
         
         if any(keyword in user_msg.lower() for keyword in ["запомни", "запиши", "не забывай", "remember"]):
-            memory_prompt = f"Извлеки ключевую информацию для запоминания из сообщения: {user_msg}. Ответь кратко."
-            memory_resp = await llm.ainvoke(memory_prompt)
-            await store.aput(namespace, str(uuid.uuid4()), {"data": memory_resp.content})
-            print(f"Сохранено в долговременную память: {memory_resp.content}")
+            
+            # --- ИСПРАВЛЕННЫЙ БЛОК ---
+            # MemoryStoreManager является Runnable. Вызов ainvoke обрабатывает переданные сообщения,
+            # извлекает структурированные воспоминания и автоматически сохраняет их в AsyncPostgresStore.
+            
+            messages_to_process = [{"role": "user", "content": user_msg}]
+            
+            extracted_memories = await memory_manager.ainvoke({"messages": messages_to_process}) # [1]
+            
+            # extracted_memories — это список извлеченных объектов Memory, который
+            # используется для печати подтверждения. Сохранение уже произошло как побочный эффект ainvoke.
+            # print(f"✅ Сохранено в долговременную память (через ainvoke): {[mem.content for mem in extracted_memories]}")
+            # --- КОНЕЦ ИСПРАВЛЕННОГО БЛОКА ---
         
-        resp = await llm.ainvoke(context)
+
+        resp = await llm.ainvoke(full_context)
         state["memory"].append({"role": "assistant", "content": resp.content})
     
     return {"memory": state["memory"], "message": resp.content}
