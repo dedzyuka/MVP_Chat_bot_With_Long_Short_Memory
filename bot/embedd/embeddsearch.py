@@ -1,17 +1,11 @@
 import asyncpg
-
 class VectorStore:
-    def __init__(self, database_url: str):
+    def __init__(self, database_url: str): # Сделать Через PGVectorstore
         self.db_url = database_url
-    
-    
-    
-    
     
     async def search_similar_chunks(self, query_embedding: list, limit: int = 5):
         conn = await asyncpg.connect(self.db_url)
         try:
-            # Также форматируем embedding запроса
             embedding_str = '[' + ','.join(str(x) for x in query_embedding) + ']'
             
             records = await conn.fetch('''

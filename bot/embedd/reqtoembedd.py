@@ -19,7 +19,7 @@ class EmbeddingGenerator:
             )
             return result.embeddings[0].values
         except Exception as e:
-            print(f"❌ Ошибка при генерации эмбеддинга: {e}")
+            print(f"Ошибка при генерации эмбеддинга: {e}")
             raise
     
 

@@ -5,27 +5,34 @@ from aiogram.types import Message
 from .graph import create_graph
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from .config import DB_URI, BOT_TOKEN
+from .embedd.reqtoembedd import EmbeddingGenerator
+from .embedd.embeddsearch import VectorStore
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-async def get_or_create_state(app, thread_id, user_id, initial_message):
-    """Утилита для получения или создания состояния"""
+vector_store = VectorStore(DB_URI)
+embedding_generator = EmbeddingGenerator()
+
+async def get_or_create_state(app, thread_id, user_id, initial_message, sys_chanck_msg: str = ""):
     saved_state = await app.aget_state(
         config={"configurable": {"thread_id": thread_id}}
     )
 
     if saved_state is None:
-        return {"memory": [], "message": initial_message, "user_id": user_id}
+        print(f"Создано новое состояние для пользователя {user_id}", flush=True)
+        return {"memory": [], "message": initial_message, "user_id": user_id, "sys_chanck_msg": sys_chanck_msg}
     else:
         state = saved_state.values
-        # Гарантируем наличие всех полей
-        if "memory" not in state:
-            state["memory"] = []
-        if "user_id" not in state:
-            state["user_id"] = user_id
-        state["message"] = initial_message
-        return state
+        # Всегда гарантируем наличие memory
+        current_memory = state.get("memory", [])
+        print(f"Восстановлено состояние с {len(current_memory)} сообщениями для пользователя {user_id}", flush=True)
+        return {
+            "memory": current_memory,
+            "message": initial_message, 
+            "user_id": user_id,
+            "sys_chanck_msg": sys_chanck_msg or state.get("sys_chanck_msg", "")
+        }
 
 @dp.message(CommandStart())
 async def handle_start(message: Message):
@@ -56,11 +63,8 @@ async def handle_message(message: Message):
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as saver:
         graph = create_graph()
         app = graph.compile(checkpointer=saver)
-
-        state = await get_or_create_state(
-            app, thread_id, user_id, user_msg
-        )
-
+        
+        state = await get_or_create_state(app, thread_id, user_id, user_msg)
         result = await app.ainvoke(
             state,
             config={"configurable": {"thread_id": thread_id}}
@@ -71,4 +75,4 @@ async def handle_message(message: Message):
 async def main():
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN is not set. Please set it in your .env file.")
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, skip_updates=True)
