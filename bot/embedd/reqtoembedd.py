@@ -2,11 +2,13 @@ from google import genai
 import os
 from google.genai import types
 import asyncio
+from bot.config import GEMINI_EMBEDD
+
 
 class EmbeddingGenerator:
     def __init__(self, api_key: str = None):
 
-        self.client = genai.Client(api_key="AIzaSyAnDpwCz7FJhD-LJpjvzzdYvaGlmz1GNGg")
+        self.client = genai.Client(api_key=GEMINI_EMBEDD)
     
     async def generate_embedding(self, text: str) -> list[float]:
         try:

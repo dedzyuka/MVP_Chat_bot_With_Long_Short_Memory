@@ -5,14 +5,9 @@ from aiogram.types import Message
 from .graph import create_graph
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from .config import DB_URI, BOT_TOKEN
-from .embedd.reqtoembedd import EmbeddingGenerator
-from .embedd.embeddsearch import VectorStore
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-
-vector_store = VectorStore(DB_URI)
-embedding_generator = EmbeddingGenerator()
 
 async def get_or_create_state(app, thread_id, user_id, initial_message, sys_chanck_msg: str = ""):
     saved_state = await app.aget_state(
@@ -24,7 +19,6 @@ async def get_or_create_state(app, thread_id, user_id, initial_message, sys_chan
         return {"memory": [], "message": initial_message, "user_id": user_id, "sys_chanck_msg": sys_chanck_msg}
     else:
         state = saved_state.values
-        # Всегда гарантируем наличие memory
         current_memory = state.get("memory", [])
         print(f"Восстановлено состояние с {len(current_memory)} сообщениями для пользователя {user_id}", flush=True)
         return {

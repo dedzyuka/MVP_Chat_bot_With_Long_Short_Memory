@@ -13,4 +13,11 @@ enc = tiktoken.encoding_for_model("gpt-4o-mini")
 DB_URI =  os.getenv("DB_URI", "")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
-embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
+GEMINI_EMBEDD = os.getenv("GEMINI_EMBEDD")
+
+LIMIT_SEARCH_EMBEDDINGS = int(os.getenv("LIMIT_SEARCH_EMBEDDINGS", 3))
+
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+
+
+TABLE_EMBEDDNAME=os.getenv("TABLE_EMBEDDNAME")

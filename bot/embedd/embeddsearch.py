@@ -1,9 +1,10 @@
 import asyncpg
+from bot.config import LIMIT_SEARCH_EMBEDDINGS
 class VectorStore:
     def __init__(self, database_url: str): # Сделать Через PGVectorstore
         self.db_url = database_url
     
-    async def search_similar_chunks(self, query_embedding: list, limit: int = 5):
+    async def search_similar_chunks(self, query_embedding: list, limit: int = LIMIT_SEARCH_EMBEDDINGS):
         conn = await asyncpg.connect(self.db_url)
         try:
             embedding_str = '[' + ','.join(str(x) for x in query_embedding) + ']'
@@ -13,7 +14,7 @@ class VectorStore:
                     content,
                     document_name,
                     chunk_index,
-                    1 - (embedding <=> $1::vector) as similarity
+                    1 - (embedding <=> $1::vector) as similarity              
                 FROM document_chunks 
                 ORDER BY embedding <=> $1::vector
                 LIMIT $2
