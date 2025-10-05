@@ -1,0 +1,25 @@
+# Core AI/ML libraries
+langgraph>=0.0.60
+langmem>=0.0.29
+langchain-openai>=0.1.0
+langchain-postgres>=0.0.6
+langchain-google-genai>=1.0.0
+
+# Telegram Bot Framework
+aiogram>=3.0.0
+
+# Database
+asyncpg>=0.29.0
+
+# Environment and Configuration
+python-dotenv>=1.0.0
+
+# Text Processing
+tiktoken>=0.5.0
+
+# Google AI
+google-genai>=0.3.0
+
+# Optional: For development and testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

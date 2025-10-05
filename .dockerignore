@@ -19,26 +19,26 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # Virtual environments
 venv/
 env/
 ENV/
-.venv/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+
+# Git
+.git/
+.gitignore
 
 # Environment files
 .env
 .env.local
 .env.production
-.env.staging
 
 # Logs
 logs/
@@ -46,22 +46,18 @@ logs/
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Database
-*.db
-*.sqlite3
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
 
-# API Keys and secrets
-secrets.json
-config.json
-api_keys.txt
+# Documentation
+README.md
+*.md
 
-# Temporary files
-*.tmp
-*.temp
+# Tests
+tests/
+test_*.py
+*_test.py

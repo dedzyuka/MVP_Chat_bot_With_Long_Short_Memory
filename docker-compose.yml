@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: telegram-bot-postgres
+    environment:
+      POSTGRES_DB: telegram_bot
+      POSTGRES_USER: bot_user
+      POSTGRES_PASSWORD: bot_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot_user -d telegram_bot"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  bot:
+    image: dedzyuka/chatbot:latest
+    container_name: telegram-bot-app
+    environment:
+      - DB_URI=postgresql://bot_user:bot_password_123@postgres:5432/telegram_bot
+      - BOT_TOKEN=${BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_EMBEDD=${GEMINI_EMBEDD}
+      - EMBEDDING_MODEL=gemini-embedding-001
+      - MAX_MESSAGES=20
+      - MAX_TOKENS=4000
+      - LIMIT_SEARCH_EMBEDDINGS=3
+      - TABLE_EMBEDDNAME=embeddings
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  # Опционально: pgAdmin для управления БД
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: telegram-bot-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

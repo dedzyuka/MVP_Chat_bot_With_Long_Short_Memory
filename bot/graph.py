@@ -3,6 +3,7 @@ from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
 from langmem import create_memory_store_manager
 from langgraph.store.postgres import AsyncPostgresStore
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from .config import llm, MAX_MESSAGES, MAX_TOKENS, DB_URI
 from .memory import summarize_memory, count_tokens
@@ -57,11 +58,10 @@ async def retrieve_memory(state: State):
         
         memory_context = ""
         if relevant_memories:
-            memory_context = "Контекст из предыдущих разговоров:\n" + \
+            memory_context = "Факты о пользователе и не только но это все скорее всего инфармация о пользователе\n" + \
                            "\n".join([f"- {getattr(mem, 'page_content', getattr(mem, 'text', str(mem)))}" for mem in relevant_memories])
         else:
-            memory_context = "Ранее вы не обсуждали эту тему."
-    
+            memory_context = "Информации о пользователе нет"
    
     return {
         **state,
